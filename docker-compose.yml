@@ -1,0 +1,194 @@
+# Odoo 19 Template Optimisé avec IA intégrée
+# Version: 19.0-optimized
+
+name: odoo-19-optimized
+
+services:
+  web:
+    build:
+      context: ./odoo/
+      dockerfile: Dockerfile
+    container_name: odoo_19_serveur_principal
+    restart: unless-stopped
+    command: >
+      odoo
+      --dev=reload,xml
+      --log-level=info
+      --workers=0
+      --max-cron-threads=2
+      --limit-memory-soft=1073741824
+      --limit-memory-hard=1610612736
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8069:8069"
+      - "8072:8072"  # Port pour le longpolling
+    volumes:
+      - ./odoo/config:/etc/odoo:rw
+      - ./odoo/config/odoo.conf:/etc/odoo/odoo.conf:ro
+      - ./odoo/addons:/mnt/extra-addons:rw
+      - odoo_filestore:/var/lib/odoo/filestore
+      - odoo_sessions:/var/lib/odoo/sessions
+      - ./logs:/var/log/odoo
+      - ./backups:/var/backups/odoo
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=odoo_19_base
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo_secure_password_2025
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ODOO_ADMIN_PASSWD=admin_secure_2025
+    networks:
+      - odoo_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  db:
+    image: postgres:17-alpine
+    container_name: postgres_17_base_donnees
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/var/backups/postgres
+      - ./scripts/postgres:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRES_DB=odoo_19_base
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo_secure_password_2025
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=fr_FR.UTF-8 --lc-ctype=fr_FR.UTF-8
+    networks:
+      - odoo_network
+    ports:
+      - "5432:5432"  # Exposé pour debug uniquement
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d odoo_19"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache_serveur
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - odoo_network
+    ports:
+      - "6379:6379"  # Exposé pour debug uniquement
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Service optionnel pour Nginx (proxy inverse)
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_proxy_production
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - web
+    networks:
+      - odoo_network
+    profiles:
+      - production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Service optionnel pour l'IA (OpenAI/Anthropic proxy)
+  ai-proxy:
+    image: nginx:alpine
+    container_name: ai_proxy_optionnel
+    restart: unless-stopped
+    volumes:
+      - ./ai-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - odoo_network
+    profiles:
+      - ai-enabled
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+  # Interface graphique pour PostgreSQL
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_interface_bd
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=admin_pgadmin_2025
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - odoo_network
+    depends_on:
+      - db
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  odoo_filestore:
+    driver: local
+  odoo_sessions:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  odoo_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+
