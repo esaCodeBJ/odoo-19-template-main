@@ -587,7 +587,7 @@ environment:
 # Author
 
 * [Expédit Sourou ALAGBE](https://github.com/esaCodeBJ)
+* [esacode](https://github.com/esacodeorg)
 
-* [esacode] (https://www.esacode.org/)
 
 **🎉 Bon développement avec Odoo 19 ! 🚀**
