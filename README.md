@@ -561,6 +561,7 @@ environment:
   - POSTGRES_PASSWORD=votre_password
 ```
 
+
 ---
 
 ## 📞 **Support & Ressources**
@@ -582,5 +583,9 @@ environment:
 4. Créer votre premier addon avec `./scripts/create-addon.sh`
 
 ---
+# Author
+
+* [Expédit Sourou ALAGBE](https://github.com/esaCodeBJ)
+* [esacode] (https://www.esacode.org/)
 
 **🎉 Bon développement avec Odoo 19 ! 🚀**

@@ -1,5 +1,5 @@
 FROM odoo:19
-LABEL MAINTAINER="contact@esacode.org"
+LABEL MAINTAINER="support@esacode.org"
 LABEL VERSION="19.0-optimized"
 LABEL DESCRIPTION="Odoo 19 optimized Docker image with AI features and performance enhancements"
 
