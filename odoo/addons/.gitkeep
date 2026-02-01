@@ -1,0 +1,11 @@
+# Ce fichier maintient le dossier addons dans Git
+# Supprimez ce fichier après avoir ajouté vos premiers addons personnalisés
+
+# Structure recommandée :
+# odoo/addons/
+# ├── mon_addon/
+# │   ├── __manifest__.py
+# │   ├── models/
+# │   ├── views/
+# │   └── ...
+# └── autre_addon/

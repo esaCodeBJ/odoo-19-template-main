@@ -1,0 +1,9 @@
+# Dépendances Python pour l'optimisation d'Odoo 19 avec IA
+# Performance et monitoring
+redis==5.0.1
+
+# Base de données et cache
+psycopg2-binary==2.9.9
+
+# Utilitaires
+python-dotenv==1.0.0
